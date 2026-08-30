@@ -2,7 +2,7 @@
 
 조사한 로그들을 이용해 버그의 위치를 찾아내는 프로그램입니다.
 
-현재 개발중인 초기 버전 상태입니다.
+현재 개발중인 초기 상태입니다.
 
 가장 쉽고 명백한 케이스 몇개만을 지원합니다.
 
@@ -39,12 +39,14 @@
 
 # 실행 조건
 
-rust 설치
+```shell
+# rust 설치
 https://rust-lang.org/tools/install/
-혹은
+# 혹은
 nix develop
 
 RUST_LOG=DEBUG cargo run -- \<로그 파일의 경로\> \<소스 폴더 경로 \(로그를 출력한 프로그램의 버전과 정확히 일치\)\> \[-g \<Bug Location의 위아래로 표시할 라인의 수\>\]
+```
 
 # 테스트
 
@@ -52,18 +54,22 @@ RUST_LOG=DEBUG cargo run -- \<로그 파일의 경로\> \<소스 폴더 경로 \
 
 ### [SERVER-77168](https://github.com/CLOUDIS-log-analysis/lets-reproduce-logs/tree/main/mongodb/SERVER-77168)
 
+```shell
 cd ./tests
 wget https://github.com/mongodb/mongo/archive/refs/tags/r6.0.1.tar.gz && tar -xvf r6.0.1.tar.gz
 git clone https://github.com/CLOUDIS-log-analysis/lets-reproduce-logs.git
 cd ..
 RUST_LOG=DEBUG cargo run -- tests/lets-reproduce-logs/mongodb/SERVER-77168/expected-log tests/mongo-r6.0.1
+```
 
 ## postgresql
 
 ### [pg-20191119-fsync-panic](https://github.com/CLOUDIS-log-analysis/lets-reproduce-logs/tree/main/postgresql/pg-20191119-fsync-panic)
 
+```shell
 cd ./tests
 wget https://ftp.postgresql.org/pub/source/v12.1/postgresql-12.1.tar.gz && tar -xzf postgresql-12.1.tar.gz
 git clone https://github.com/CLOUDIS-log-analysis/lets-reproduce-logs.git
 cd ..
 RUST_LOG=DEBUG cargo run -- tests/lets-reproduce-logs/postgresql/pg-20191119-fsync-panic/logs/result.log tests/postgresql-12.1
+```
