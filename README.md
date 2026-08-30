@@ -62,6 +62,27 @@ cd ..
 RUST_LOG=DEBUG cargo run -- tests/lets-reproduce-logs/mongodb/SERVER-77168/expected-log tests/mongo-r6.0.1
 ```
 
+출력 결과
+
+```shell
+-- report 1 --
+-- path src/mongo/db/auth/resource_pattern.h --
+-- reliability: 1.00 --
+line: 133
+content:
+128:      * Returns a pattern that matches a collection with the name
+129:      * "<dbName>.system.buckets.<collectionName>"
+130:      */
+131:     static ResourcePattern forExactSystemBucketsCollection(StringData dbName,
+132:                                                            StringData collectionName) {
+133:         invariant(!collectionName.startsWith("system.buckets.")); <<
+134:         return ResourcePattern(MatchTypeEnum::kMatchExactSystemBucketResource,
+135:                                NamespaceString(dbName, collectionName));
+136:     }
+137:
+138:     /**
+```
+
 ## postgresql
 
 ### [pg-20191119-fsync-panic](https://github.com/CLOUDIS-log-analysis/lets-reproduce-logs/tree/main/postgresql/pg-20191119-fsync-panic)
@@ -72,4 +93,24 @@ wget https://ftp.postgresql.org/pub/source/v12.1/postgresql-12.1.tar.gz && tar -
 git clone https://github.com/CLOUDIS-log-analysis/lets-reproduce-logs.git
 cd ..
 RUST_LOG=DEBUG cargo run -- tests/lets-reproduce-logs/postgresql/pg-20191119-fsync-panic/logs/result.log tests/postgresql-12.1
+```
+
+출력 결과
+
+```shell
+-- report 1 --
+-- reliability: 1.00 --
+line: 393
+content:
+388:                     * It is possible that the relation has been dropped or truncated
+389:                     * since the fsync request was entered. Therefore, allow ENOENT,
+390:                     * but only if we didn't fail already on this file.
+391:                     */
+392:                    if (!FILE_POSSIBLY_DELETED(errno) || failures > 0)
+393:                            ereport(data_sync_elevel(ERROR), <<
+394:                                            (errcode_for_file_access(),
+395:                                             errmsg("could not fsync file \"%s\": %m",
+396:                                                            path)));
+397:                    else
+398:                            ereport(DEBUG1,
 ```
