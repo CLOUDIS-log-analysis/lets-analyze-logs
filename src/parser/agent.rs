@@ -1,10 +1,15 @@
 use std::{convert::Infallible, path::Path};
 
 use itertools::Itertools;
+use rig::prelude::*;
+use rig::providers::chatgpt;
 use rig::{
     client::{AgentClientExt, Nothing},
     completion::TypedPrompt,
-    providers::{anthropic, ollama},
+    providers::{
+        anthropic,
+        ollama::{self},
+    },
     tool::Tool,
 };
 use serde::Deserialize;
@@ -15,23 +20,12 @@ use crate::{
     utils::{find_file_path_from_file_name, validate_file_path},
 };
 
-pub fn parse_using_agent_ollama(ctx: &Ctxt, log: &Log) -> anyhow::Result<Vec<StartingLocation>> {
-    match &ctx.ollama_url {
-        Some(url) => {
-            let rt = tokio::runtime::Runtime::new()?;
-            let sls = rt.block_on(parse_ollama(ctx, log, url))?;
-            Ok(sls)
-        }
-        None => Ok(vec![]),
-    }
-}
-
-async fn parse_ollama(ctx: &Ctxt, log: &Log, url: &str) -> anyhow::Result<Vec<StartingLocation>> {
-    let client = ollama::Client::builder()
-        .api_key(Nothing)
-        .base_url(url)
-        .build()?;
-
+async fn parse<T: CompletionClient + 'static>(
+    ctx: &Ctxt,
+    log: &Log,
+    client: T,
+    model: &str,
+) -> anyhow::Result<Vec<StartingLocation>> {
     let batch_size = 1000;
     let mut ret = vec![];
     for (index, batch) in log
@@ -42,7 +36,7 @@ async fn parse_ollama(ctx: &Ctxt, log: &Log, url: &str) -> anyhow::Result<Vec<St
         .enumerate()
     {
         let result :Vec<StartingLocation> = client
-        .agent("qwen3.8:27b")
+        .agent(model)
         .tool(FindFilePath{src_path:ctx.src_path.clone()})
         .tool(ValidateFilePath{src_path:ctx.src_path.clone()})
         .max_tokens(1024 * 1024)
@@ -75,6 +69,25 @@ async fn parse_ollama(ctx: &Ctxt, log: &Log, url: &str) -> anyhow::Result<Vec<St
 
     tracing::debug!("ret: {:?}", ret);
     Ok(ret)
+}
+
+pub fn parse_using_agent_ollama(ctx: &Ctxt, log: &Log) -> anyhow::Result<Vec<StartingLocation>> {
+    match &ctx.ollama_url {
+        Some(url) => {
+            let rt = tokio::runtime::Runtime::new()?;
+            let sls = rt.block_on(parse_ollama(ctx, log, url))?;
+            Ok(sls)
+        }
+        None => Ok(vec![]),
+    }
+}
+
+async fn parse_ollama(ctx: &Ctxt, log: &Log, url: &str) -> anyhow::Result<Vec<StartingLocation>> {
+    let client = ollama::Client::builder()
+        .api_key(Nothing)
+        .base_url(url)
+        .build()?;
+    parse(ctx, log, client, "qwen3.8:27b").await
 }
 
 pub fn parse_using_agent_anthropic(ctx: &Ctxt, log: &Log) -> anyhow::Result<Vec<StartingLocation>> {
@@ -95,49 +108,28 @@ async fn parse_anthropic(
 ) -> anyhow::Result<Vec<StartingLocation>> {
     let client = anthropic::Client::builder().api_key(api_key).build()?;
 
-    let batch_size = 1000;
-    let mut ret = vec![];
-    for (index, batch) in log
-        .iter()
-        .chunks(batch_size)
-        .into_iter()
-        .map(|chunk| chunk.fold(String::new(), |acc, x| format!("{}\n{}", acc, x)))
-        .enumerate()
-    {
-        let result :Vec<StartingLocation> = client
-        .agent(anthropic::completion::CLAUDE_SONNET_4_6)
-        .tool(FindFilePath{src_path:ctx.src_path.clone()})
-        .tool(ValidateFilePath{src_path:ctx.src_path.clone()})
-        .max_tokens(1024 * 1024)
-        .default_max_turns(1024 * 1024)
-        .build()
+    parse(ctx, log, client, anthropic::completion::CLAUDE_SONNET_4_6).await
+}
 
-        .prompt_typed(format!("{}", format!(r#"
-            "new to old log line. You are currently in range: {l}~{r}
-            ""
-            "{logs}"
-            ""
-            You have some program's log file that is just crashed.
-            You have to find suspicious log line and extract source locations for potential bug line.
-            You can make multiple locations.
-            Evaluate your confidence of each locations ranges 0.0~1.0. specify line number of suspicious line.
-            Write down description of why you think that line is suspicious.
-            word like "panic" or "fatal" is a good hint.
-            If can't find anything, write down the reason as error message verbosely.
-            You cannot see file content. Juse use file name and line number in log line.
-            You must validate your file path using ValidateFilePath before submit. If it returns false, use FindFilePath again.
-            "#,l = index * batch_size,r = std::cmp::min((index +1) * batch_size - 1, log.lines.len()) ,logs = batch))).await?;
-
-        tracing::debug!("result: {:?}", result);
-        ret.extend(
-            result
-                .into_iter()
-                .filter(|x| validate_file_path(&x.loc.file_path, &Path::new(&ctx.src_path))),
-        );
+pub fn parse_using_agent_chatgpt(ctx: &Ctxt, log: &Log) -> anyhow::Result<Vec<StartingLocation>> {
+    match &ctx.chatgpt {
+        Some(api_key) => {
+            let rt = tokio::runtime::Runtime::new()?;
+            let sls = rt.block_on(parse_chatgpt(ctx, log, api_key))?;
+            Ok(sls)
+        }
+        None => Ok(vec![]),
     }
+}
 
-    tracing::debug!("ret: {:?}", ret);
-    Ok(ret)
+async fn parse_chatgpt(
+    ctx: &Ctxt,
+    log: &Log,
+    api_key: &str,
+) -> anyhow::Result<Vec<StartingLocation>> {
+    let client = chatgpt::Client::builder().api_key(api_key).build()?;
+
+    parse(ctx, log, client, chatgpt::GPT_5_3_CODEX).await
 }
 
 #[derive(Deserialize)]

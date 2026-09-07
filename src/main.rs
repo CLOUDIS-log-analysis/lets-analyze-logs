@@ -16,7 +16,7 @@ use clap::Parser;
 use crate::{
     inferer::dummy::dummy_inferer,
     parser::{
-        agent::{parse_using_agent_anthropic, parse_using_agent_ollama},
+        agent::{parse_using_agent_anthropic, parse_using_agent_chatgpt, parse_using_agent_ollama},
         mongodb::parse_mongodb_json,
         postgres::parse_postgres,
     },
@@ -128,6 +128,13 @@ fn parse_log(ctx: &Ctxt, log: &Log) -> Vec<StartingLocation> {
         Err(e) => log::debug!("{}", e),
     }
     let result = parse_using_agent_anthropic(ctx, log);
+    match result {
+        Ok(mut starting_locs) => {
+            total_starting_locs.append(&mut starting_locs);
+        }
+        Err(e) => log::debug!("{}", e),
+    }
+    let result = parse_using_agent_chatgpt(ctx, log);
     match result {
         Ok(mut starting_locs) => {
             total_starting_locs.append(&mut starting_locs);
