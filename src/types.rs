@@ -11,30 +11,44 @@ pub struct Cli {
 
     #[arg(short, long, default_value = "5")]
     pub gap: usize,
+    #[arg( long, default_value = None)]
+    pub ollama_url: Option<String>,
+    #[arg( long, default_value = None)]
+    pub anthropic: Option<String>,
+    #[arg( long, default_value = None)]
+    pub chatgpt: Option<String>,
+    #[arg( long, default_value = None)]
+    pub openai: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize, rig::schemars::JsonSchema)]
 pub struct SourceLocation {
     pub file_path: String,
     pub line_nr: usize,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize, rig::schemars::JsonSchema)]
 pub struct StartingLocation {
     pub loc: SourceLocation,
-    pub reliability: f64,
+    pub confidence: f64,
+    pub description: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize, rig::schemars::JsonSchema)]
 pub struct BugLocation {
     pub loc: SourceLocation,
-    pub reliability: f64,
+    pub confidence: f64,
+    pub description: Option<String>,
 }
 
 pub struct Ctxt {
     pub log_path: String,
     pub src_path: String,
     pub gap: usize,
+    pub ollama_url: Option<String>,
+    pub anthropic: Option<String>,
+    pub chatgpt: Option<String>,
+    pub openai: Option<String>,
 }
 
 pub struct Log {

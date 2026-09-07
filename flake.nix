@@ -39,10 +39,10 @@
                   extensions = ["rust-src"];
                 })
                 # stable.latest.default
-                stable.latest.clippy
+                # stable.latest.clippy
 
-                nightly.latest.rustfmt
-                nightly.latest.rust-analyzer
+                stable.latest.rustfmt
+                stable.latest.rust-analyzer
               ]
               ++ (with pkgs; [
                 mold

@@ -59,7 +59,14 @@ https://rust-lang.org/tools/install/
 # 혹은
 nix develop
 
-RUST_LOG=DEBUG cargo run -- \<로그 파일의 경로\> \<소스 폴더 경로 \(로그를 출력한 프로그램의 버전과 정확히 일치\)\> \[-g \<Bug Location의 위아래로 표시할 라인의 수\>\]
+RUST_LOG=DEBUG cargo run -- \<로그 파일의 경로\> \<소스 폴더 경로 \(로그를 출력한 프로그램의 버전과 정확히 일치\)\> \[-g \<Bug Location의 위아래로 표시할 라인의 수\>\] [--ollama-url \<ollama url\> --anthropic \<anthropic api key\>]
+```
+
+# LLM agent
+
+```
+--anthropic <api key>
+옵션을 전달하는 것으로 claude sonnet 4.6을 로그 해석에 이용할 수 있습니다.
 ```
 
 # 테스트

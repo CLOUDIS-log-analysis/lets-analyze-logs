@@ -14,7 +14,7 @@ struct PgLogLine {
 /// parse postgres log
 /// extract file path and line number if log line has '"attr":{"file":"...","line":..., ...}'
 pub fn parse_postgres(ctx: &Ctxt, log: &Log) -> anyhow::Result<Vec<StartingLocation>> {
-    log::info!("running parse_postgres()...");
+    tracing::info!("running parse_postgres()...");
 
     let first_line: &str = log.get_line(0).ok_or(anyhow::Error::msg("no lines"))?;
     let result = parse_postgres_log_line(first_line);
@@ -22,8 +22,8 @@ pub fn parse_postgres(ctx: &Ctxt, log: &Log) -> anyhow::Result<Vec<StartingLocat
     match result {
         Some(_) => parse(ctx, log),
         None => {
-            log::info!("parse_postgres(): failed");
-            log::debug!("{}", first_line);
+            tracing::info!("parse_postgres(): failed");
+            tracing::debug!("{}", first_line);
             Ok(vec![])
         }
     }
@@ -34,7 +34,7 @@ fn parse(ctx: &Ctxt, log: &Log) -> anyhow::Result<Vec<StartingLocation>> {
 
     let log_lines = log.iter();
     for (index, line) in log_lines.enumerate() {
-        log::trace!("{}", line);
+        tracing::trace!("{}", line);
         let line = parse_postgres_log_line(line);
         match line {
             Some(line) => {
@@ -51,7 +51,7 @@ fn parse(ctx: &Ctxt, log: &Log) -> anyhow::Result<Vec<StartingLocation>> {
                                 .captures(&detail.msg)
                                 .expect("cannot parse loc msg")
                                 .extract();
-                            log::debug!("{} {} {}", func, file_name, line_nr);
+                            tracing::debug!("{} {} {}", func, file_name, line_nr);
 
                             let path_candidates =
                                 find_file_path_from_file_name(file_name, Path::new(&ctx.src_path));
@@ -62,19 +62,20 @@ fn parse(ctx: &Ctxt, log: &Log) -> anyhow::Result<Vec<StartingLocation>> {
                                 };
                                 StartingLocation {
                                     loc,
-                                    reliability: 1.0,
+                                    confidence: 1.0,
+                                    description: None,
                                 }
                             });
                             starting_points.extend(iter);
                         }
                         None => {
-                            log::debug!("parse_postgres(): no location line...");
+                            tracing::debug!("parse_postgres(): no location line...");
                         }
                     }
                 }
             }
             None => {
-                log::debug!("parse_postgres(): skip failed parse line...");
+                tracing::debug!("parse_postgres(): skip failed parse line...");
             }
         }
     }

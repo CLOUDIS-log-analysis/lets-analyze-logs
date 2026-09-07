@@ -6,7 +6,7 @@ use crate::{Log, SourceLocation, StartingLocation};
 /// parse mongodb json log
 /// extract file path and line number if log line has '"attr":{"file":"...","line":..., ...}'
 pub fn parse_mongodb_json(log: &Log) -> anyhow::Result<Vec<StartingLocation>> {
-    log::info!("running parse_mongodb()...");
+    tracing::info!("running parse_mongodb()...");
 
     let mut starting_points = Vec::new();
 
@@ -39,11 +39,12 @@ pub fn parse_mongodb_json(log: &Log) -> anyhow::Result<Vec<StartingLocation>> {
                         };
                         Some(StartingLocation {
                             loc,
-                            reliability: 1.0,
+                            confidence: 1.0,
+                            description: None,
                         })
                     })();
                     if let Some(sp) = sp {
-                        log::info!("{:?}", &sp);
+                        tracing::info!("{:?}", &sp);
                         starting_points.push(sp);
                     }
                 }
@@ -56,7 +57,7 @@ pub fn parse_mongodb_json(log: &Log) -> anyhow::Result<Vec<StartingLocation>> {
             Ok(starting_points)
         }
         Err(_) => {
-            log::info!("parse_mongodb_json(): failed");
+            tracing::info!("parse_mongodb_json(): failed");
             Ok(vec![])
         }
     }

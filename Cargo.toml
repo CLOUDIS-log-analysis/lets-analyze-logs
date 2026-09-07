@@ -8,8 +8,14 @@ anyhow = "1.0.104"
 chrono = "0.4.45"
 clap = { version = "4.6.6", features = ["derive"] }
 env_logger = "0.11.11"
+itertools = "0.15.0"
 log = "0.4.34"
 regex = "1.13.1"
+rig = "0.42.0"
+schemars = "1.2.2"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
+tokio = { version = "1.53.1", features = ["macros", "rt", "rt-multi-thread"] }
+tracing = "0.1.44"
+tracing-subscriber = "0.3.23"
 walkdir = "2.5.0"

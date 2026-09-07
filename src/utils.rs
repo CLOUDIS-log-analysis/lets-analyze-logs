@@ -20,3 +20,17 @@ pub fn find_file_path_from_file_name(file_name: &str, src_path: &Path) -> Vec<St
     }
     results
 }
+
+pub fn validate_file_path(file_path: &str, src_path: &Path) -> bool {
+    for entry in WalkDir::new(src_path) {
+        let entry = entry.unwrap();
+        if entry.path().strip_prefix(src_path).unwrap() == Path::new(file_path) {
+            return true;
+        }
+    }
+    false
+}
+
+pub fn find_file_path_from_file_content(file_name: &str, src_path: &Path) -> Vec<String> {
+    todo!()
+}

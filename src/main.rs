@@ -15,22 +15,44 @@ use clap::Parser;
 
 use crate::{
     inferer::dummy::dummy_inferer,
-    parser::{mongodb::parse_mongodb_json, postgres::parse_postgres},
+    parser::{
+        agent::{parse_using_agent_anthropic, parse_using_agent_ollama},
+        mongodb::parse_mongodb_json,
+        postgres::parse_postgres,
+    },
 };
 
 fn main() -> anyhow::Result<()> {
-    env_logger::init();
+    use tracing_subscriber::filter::Targets;
+    use tracing_subscriber::prelude::*;
+
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::fmt::layer())
+        .with(
+            Targets::new()
+                .with_default(tracing::Level::TRACE)
+                .with_target("hyper", tracing::level_filters::LevelFilter::OFF),
+        )
+        .init();
 
     let Cli {
         log_path,
         src_path,
         gap,
+        ollama_url,
+        anthropic,
+        chatgpt,
+        openai,
     } = Cli::parse();
 
     let ctx = Ctxt {
         log_path,
         src_path,
         gap,
+        ollama_url,
+        anthropic,
+        chatgpt,
+        openai,
     };
 
     let log = Log::try_new(&ctx.log_path)?;
@@ -47,7 +69,9 @@ fn main() -> anyhow::Result<()> {
 }
 
 fn print_reports(ctx: &Ctxt, bug_locs: &[BugLocation]) -> anyhow::Result<()> {
+    dbg!(bug_locs);
     for (index, loc) in bug_locs.iter().enumerate() {
+        dbg!(loc);
         let file = File::open(Path::new(&ctx.src_path).join(&loc.loc.file_path))?;
 
         let mut msg = String::new();
@@ -72,7 +96,7 @@ fn print_reports(ctx: &Ctxt, bug_locs: &[BugLocation]) -> anyhow::Result<()> {
 
         println!("-- report {} --", index + 1);
         println!("-- path {} --", loc.loc.file_path);
-        println!("-- reliability: {:.2} --", loc.reliability);
+        println!("-- reliability: {:.2} --", loc.confidence);
         println!("{}", msg);
         println!();
     }
@@ -83,12 +107,32 @@ fn parse_log(ctx: &Ctxt, log: &Log) -> Vec<StartingLocation> {
     let mut total_starting_locs = Vec::new();
 
     let result = parse_mongodb_json(log);
-    if let Ok(mut starting_locs) = result {
-        total_starting_locs.append(&mut starting_locs);
+    match result {
+        Ok(mut starting_locs) => {
+            total_starting_locs.append(&mut starting_locs);
+        }
+        Err(e) => log::debug!("{}", e),
     }
     let result = parse_postgres(ctx, log);
-    if let Ok(mut starting_locs) = result {
-        total_starting_locs.append(&mut starting_locs);
+    match result {
+        Ok(mut starting_locs) => {
+            total_starting_locs.append(&mut starting_locs);
+        }
+        Err(e) => log::debug!("{}", e),
+    }
+    let result = parse_using_agent_ollama(ctx, log);
+    match result {
+        Ok(mut starting_locs) => {
+            total_starting_locs.append(&mut starting_locs);
+        }
+        Err(e) => log::debug!("{}", e),
+    }
+    let result = parse_using_agent_anthropic(ctx, log);
+    match result {
+        Ok(mut starting_locs) => {
+            total_starting_locs.append(&mut starting_locs);
+        }
+        Err(e) => log::debug!("{}", e),
     }
 
     // more...
